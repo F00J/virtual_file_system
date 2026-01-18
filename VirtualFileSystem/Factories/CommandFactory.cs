@@ -10,11 +10,13 @@ namespace VirtualFileSystem.Factories
             return command switch
             {
                 Command.Add => new AddCommand(),
+                Command.Delete => new DeleteCommand(),
                 Command.View => new ViewCommand(),
                 Command.Move => new MoveCommand(),
                 Command.List => new ListCommand(),
                 Command.Info => new InfoCommand(),
                 Command.Help => new HelpCommand(),
+                Command.ClearAll => new ClearAllCommand(),
                 _ => null
             };
         }
