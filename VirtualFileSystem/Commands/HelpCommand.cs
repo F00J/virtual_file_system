@@ -9,7 +9,7 @@ namespace VirtualFileSystem.Commands
         public override void Execute(string[] args)
         {
             Console.WriteLine("Available commands:");
-            Console.WriteLine("  add       - Add a new file or folder              - vf add <file|folder> <paht>");
+            Console.WriteLine("  add       - Add a new file or folder              - vf add <file|folder> <path>");
             Console.WriteLine("  delete    - Delete a file or folder               - vf delete <path>");
             Console.WriteLine("  view      - View virtual folder tree              - vf view <path>");
             Console.WriteLine("  move      - Move a file or folder                 - vf move <source path> <destination path>");
