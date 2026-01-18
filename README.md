@@ -2,7 +2,7 @@
 
 | Command   | Description                                  | Usage                                      |
 |-----------|----------------------------------------------|--------------------------------------------|
-| `add`     | Add a new file or folder                     | `vf add <file|folder> <path>`              |
+| `add`     | Add a new file or folder                     | `vf add <file\|folder> <path>`              |
 | `delete`  | Delete a file or folder                      | `vf delete <path>`                         |
 | `view`    | View virtual folder tree                     | `vf view <path>`                           |
 | `move`    | Move a file or folder                        | `vf move <source path> <destination path>` |
