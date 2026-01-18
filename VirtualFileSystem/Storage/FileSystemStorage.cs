@@ -6,7 +6,7 @@ namespace VirtualFileSystem.Storage
 {
     public static class FileSystemStorage
     {
-        private const string FileName = "filesystem.json";
+        private const string FileName = "file_system.json";
 
         private static readonly JsonSerializerOptions JsonOptions = new()
         {
@@ -27,9 +27,9 @@ namespace VirtualFileSystem.Storage
 
                 return JsonSerializer.Deserialize<VirtualFolder>(json)?? VirtualSystemFactory.CreateRoot();
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                Console.WriteLine($"Error loading file system: {ex.Message}");
+                Console.WriteLine($"Error loading file system: {exception.Message}");
                 return VirtualSystemFactory.CreateRoot();
             }
         }
@@ -41,9 +41,9 @@ namespace VirtualFileSystem.Storage
                 string json = JsonSerializer.Serialize(root, JsonOptions);
                 File.WriteAllText(FileName, json);
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                Console.WriteLine($"Error saving file system: {ex.Message}");
+                Console.WriteLine($"Error saving file system: {exception.Message}");
             }
         }
 
@@ -56,9 +56,9 @@ namespace VirtualFileSystem.Storage
                     File.Delete(FileName);
                 }
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                Console.WriteLine($"Error clearing file system: {ex.Message}");
+                Console.WriteLine($"Error clearing file system: {exception.Message}");
             }
         }
 
