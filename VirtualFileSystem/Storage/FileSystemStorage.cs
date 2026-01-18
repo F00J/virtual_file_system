@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using VirtualFileSystem.Factories;
 using VirtualFileSystem.Models;
 
 namespace VirtualFileSystem.Storage
@@ -7,7 +8,7 @@ namespace VirtualFileSystem.Storage
     {
         private const string FileName = "filesystem.json";
 
-        private static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions
+        private static readonly JsonSerializerOptions JsonOptions = new()
         {
             WriteIndented = true,
             IncludeFields = true
@@ -19,59 +20,18 @@ namespace VirtualFileSystem.Storage
             {
                 if (!File.Exists(FileName))
                 {
-                    return new VirtualFolder { Name = "root" };
+                    return VirtualSystemFactory.CreateRoot();
                 }
 
                 string json = File.ReadAllText(FileName);
-                return JsonSerializer.Deserialize<VirtualFolder>(json) ?? new VirtualFolder { Name = "root" };
+
+                return JsonSerializer.Deserialize<VirtualFolder>(json)?? VirtualSystemFactory.CreateRoot();
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error loading file system: {ex.Message}");
-
-                return new VirtualFolder { Name = "root" };
+                return VirtualSystemFactory.CreateRoot();
             }
-        }
-
-        public static VirtualFolder? ResolveFolderByPath(VirtualFolder? root, string path)
-        {
-            string[] parts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
-
-            VirtualFolder? current = root;
-
-            for (int i = 1; i < parts.Length; i++)
-            {
-                current = current?.Folders
-                    .FirstOrDefault(f => f.Name.Equals(parts[i], StringComparison.OrdinalIgnoreCase));
-
-                if (current == null)
-                {
-                    return null;
-                }
-            }
-
-            return current;
-        }
-
-        public static VirtualFolder? LoadFolder(string path)
-        {
-            string[] segments = path.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries);
-            VirtualFolder currentFolder = LoadRoot();
-
-            foreach (string segment in segments)
-            {
-                VirtualFolder? nextFolder = currentFolder.Folders.FirstOrDefault(f => f.Name.Equals(segment, StringComparison.OrdinalIgnoreCase));
-                if (nextFolder != null)
-                {
-                    currentFolder = nextFolder;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            return currentFolder;
         }
 
         public static void Save(VirtualFolder root)
@@ -79,41 +39,12 @@ namespace VirtualFileSystem.Storage
             try
             {
                 string json = JsonSerializer.Serialize(root, JsonOptions);
-
                 File.WriteAllText(FileName, json);
             }
-            catch (Exception exception)
+            catch (Exception ex)
             {
-                Console.WriteLine($"Error saving file system: {exception.Message}");
+                Console.WriteLine($"Error saving file system: {ex.Message}");
             }
-        }
-
-        public static bool Exists(string path)
-        {
-            string[] segments = path.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries);
-
-            VirtualFolder currentFolder = LoadRoot();
-
-            foreach (string segment in segments)
-            {
-                VirtualFolder? nextFolder = currentFolder.Folders.FirstOrDefault(f => f.Name.Equals(segment, StringComparison.OrdinalIgnoreCase));
-
-                if (nextFolder != null)
-                {
-                    currentFolder = nextFolder;
-                }
-                else
-                {
-                    VirtualFile? file = currentFolder.Files.FirstOrDefault(f => f.Name.Equals(segment, StringComparison.OrdinalIgnoreCase));
-                    if (file != null && segment == segments.Last())
-                    {
-                        return true;
-                    }
-                    return false;
-                }
-            }
-
-            return true;
         }
 
         public static void ClearAll()
@@ -125,10 +56,147 @@ namespace VirtualFileSystem.Storage
                     File.Delete(FileName);
                 }
             }
-            catch (Exception exception)
+            catch (Exception ex)
             {
-                Console.WriteLine($"Error clearing file system: {exception.Message}");
+                Console.WriteLine($"Error clearing file system: {ex.Message}");
             }
         }
+
+        public static VirtualFolder? ResolveFolderByPath(VirtualFolder root, string fullPath)
+        {
+            return FlattenFolders(root)
+                .FirstOrDefault(f =>
+                    f.FullPath.Equals(fullPath, StringComparison.OrdinalIgnoreCase));
+        }
+
+        public static VirtualFile? ResolveFileByPath(VirtualFolder root, string fullPath)
+        {
+            return FlattenFiles(root)
+                .FirstOrDefault(f =>
+                    f.FullPath.Equals(fullPath, StringComparison.OrdinalIgnoreCase));
+        }
+
+        public static bool Exists(string fullPath)
+        {
+            VirtualFolder root = LoadRoot();
+
+            return FlattenFolders(root)
+                       .Any(f => f.FullPath.Equals(fullPath, StringComparison.OrdinalIgnoreCase))
+                   || FlattenFiles(root)
+                       .Any(f => f.FullPath.Equals(fullPath, StringComparison.OrdinalIgnoreCase));
+        }
+
+        public static VirtualFolder EnsureFolderPath(VirtualFolder root, string fullPath)
+        {
+            string[] parts = fullPath
+                .Trim('/')
+                .Split('/', StringSplitOptions.RemoveEmptyEntries);
+
+            VirtualFolder current = root;
+
+            for (int i = 1; i < parts.Length; i++)
+            {
+                string folderName = parts[i];
+
+                VirtualFolder? next = current.Folders
+                    .FirstOrDefault(f => f.Name.Equals(folderName, StringComparison.OrdinalIgnoreCase));
+
+                if (next == null)
+                {
+                    string full = current.FullPath == "root"
+                        ? $"root/{folderName}"
+                        : $"{current.FullPath}/{folderName}";
+
+                    next = new VirtualFolder
+                    {
+                        Name = folderName,
+                        FullPath = full
+                    };
+
+                    current.Folders.Add(next);
+                }
+
+                current = next;
+            }
+
+            return current;
+        }
+
+        public static void DeletePath(string fullPath)
+        {
+            VirtualFolder root = LoadRoot();
+
+            if (fullPath.Equals("root", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            VirtualFolder? folder = ResolveFolderByPath(root, fullPath);
+            if (folder != null)
+            {
+                RemoveFolder(root, folder);
+                Save(root);
+                return;
+            }
+
+            VirtualFile? file = ResolveFileByPath(root, fullPath);
+            if (file != null)
+            {
+                VirtualFolder? parent = ResolveFolderByPath(
+                    root,
+                    GetParentPath(fullPath)
+                );
+
+                parent?.Files.Remove(file);
+                Save(root);
+            }
+        }
+
+        #region Helper Methods
+
+        private static void RemoveFolder(VirtualFolder root, VirtualFolder target)
+        {
+            foreach (VirtualFolder folder in FlattenFolders(root))
+            {
+                if (folder.Folders.Remove(target))
+                {
+                    return;
+                }
+            }
+        }
+
+
+        private static IEnumerable<VirtualFolder> FlattenFolders(VirtualFolder root)
+        {
+            yield return root;
+
+            foreach (VirtualFolder folder in root.Folders)
+            {
+                foreach (VirtualFolder sub in FlattenFolders(folder))
+                {
+                    yield return sub;
+                }
+            }
+        }
+
+        private static IEnumerable<VirtualFile> FlattenFiles(VirtualFolder root)
+        {
+            foreach (VirtualFolder folder in FlattenFolders(root))
+            {
+                foreach (VirtualFile file in folder.Files)
+                {
+                    yield return file;
+                }
+            }
+        }
+
+
+        private static string GetParentPath(string fullPath)
+        {
+            int index = fullPath.LastIndexOf('/');
+            return index <= 0 ? "root" : fullPath[..index];
+        }
+
+        #endregion
     }
 }
