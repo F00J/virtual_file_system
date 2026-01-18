@@ -10,46 +10,53 @@ namespace VirtualFileSystem.Commands
 
         public override void Execute(string[] args)
         {
-            if (args.Length == 0)
+            VirtualFolder root = FileSystemStorage.LoadRoot();
+
+            string path = args.Length == 0 ? "root" : args[0];
+
+            if (!FileSystemStorage.Exists(path))
             {
-                Console.WriteLine("Viewing folder structure from root:");
-                VirtualFolder root = FileSystemStorage.LoadRoot();
-                ViewFolderStructure(root, "/");
+                Console.WriteLine($"Path does not exist: {path}");
+                return;
             }
-            else if (args.Length == 1)
+
+            VirtualFolder? folder = FileSystemStorage.ResolveFolderByPath(root, path);
+
+            if (folder == null)
             {
-                string path = args[0];
-                
-                if (!FileSystemStorage.Exists(path))
-                {
-                    Console.WriteLine($"Path does not exist: {path}");
-                    return;
-                }
-                
-                VirtualFolder? folder = FileSystemStorage.LoadFolder(path);
-               
-                if (folder == null)
-                {
-                    Console.WriteLine($"Path is not a folder: {path}");
-                    return;
-                }
-                
-                Console.WriteLine($"Viewing folder structure from: {path}");
-                ViewFolderStructure(folder, path);
+                Console.WriteLine($"Path is not a folder: {path}");
+                return;
             }
-            else
+
+            Console.WriteLine($"Viewing folder structure from: {folder.FullPath}");
+            ViewFolderStructure(folder, 0);
+        }
+
+        public override bool Validate(string[] args)
+        {
+            if (args.Length > 1)
             {
-                Console.WriteLine("Invalid arguments. Usage: vf view <path>");
+                Console.WriteLine("Invalid arguments, too many parameters. Usage: vf view [path]");
+                return false;
+            }
+
+            return true;
+        }
+
+        #region Helper Methods
+
+        private static void ViewFolderStructure(VirtualFolder folder, int indentLevel)
+        {
+            string indent = new string(' ', indentLevel * 2);
+
+            Console.WriteLine($"{indent}[DIR] {folder.Name}");
+
+            foreach (VirtualFolder subFolder in folder.Folders)
+            {
+                ViewFolderStructure(subFolder, indentLevel + 1);
             }
         }
 
-        private static void ViewFolderStructure(VirtualFolder folder, string path, string indent = "")
-        {
-            Console.WriteLine($"{indent}[DIR] {folder.Name}");
-            foreach (VirtualFolder subFolder in folder.Folders)
-            {
-                ViewFolderStructure(subFolder, $"{path.TrimEnd('/')}/{subFolder.Name}", indent + "  ");
-            }
-        }
+        #endregion
     }
 }

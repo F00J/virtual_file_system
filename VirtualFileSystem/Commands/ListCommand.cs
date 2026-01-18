@@ -10,45 +10,39 @@ namespace VirtualFileSystem.Commands
 
         public override void Execute(string[] args)
         {
-            if (args.Length == 0)
+            VirtualFolder root = FileSystemStorage.LoadRoot();
+
+            string path = args.Length == 0 ? "root" : args[0];
+
+            if (!FileSystemStorage.Exists(path))
             {
-                Console.WriteLine("Listing contents of root folder:");
-                VirtualFolder root = FileSystemStorage.LoadRoot();
-                ListContents(root, "/");
+                Console.WriteLine($"Path does not exist: {path}");
+                return;
             }
-            else if (args.Length == 1)
+
+            VirtualFolder? folder = FileSystemStorage.ResolveFolderByPath(root, path);
+
+            if (folder == null)
             {
-                string path = args[0];
-                if (!FileSystemStorage.Exists(path))
-                {
-                    Console.WriteLine($"Path does not exist: {path}");
-                    return;
-                }
-                VirtualFolder? folder = FileSystemStorage.LoadFolder(path);
-                if (folder == null)
-                {
-                    Console.WriteLine($"Path is not a folder: {path}");
-                    return;
-                }
-                Console.WriteLine($"Listing contents of folder: {path}");
-                ListContents(folder, path);
+                Console.WriteLine($"Path is not a folder: {path}");
+                return;
             }
-            else
-            {
-                Console.WriteLine("Invalid arguments. Usage: vf list <path>");
-            }
+
+            Console.WriteLine($"Listing contents of folder: {folder.FullPath}");
+            
+            ListContents(folder);
         }
 
-        private static void ListContents(VirtualFolder folder, string path)
+        private static void ListContents(VirtualFolder folder)
         {
             foreach (VirtualFolder subFolder in folder.Folders)
             {
-                Console.WriteLine($"[DIR]  {path.TrimEnd('/')}/{subFolder.Name}");
+                Console.WriteLine($"[DIR]  {subFolder.Name}");
             }
 
             foreach (VirtualFile file in folder.Files)
             {
-                Console.WriteLine($"[FILE] {path.TrimEnd('/')}/{file.Name}");
+                Console.WriteLine($"[FILE] {file.Name}");
             }
         }
     }

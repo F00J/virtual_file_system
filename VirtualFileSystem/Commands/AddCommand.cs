@@ -1,4 +1,6 @@
 ﻿using VirtualFileSystem.Enums;
+using VirtualFileSystem.Factories;
+using VirtualFileSystem.Helpers;
 using VirtualFileSystem.Models;
 using VirtualFileSystem.Storage;
 
@@ -20,23 +22,15 @@ namespace VirtualFileSystem.Commands
             string parentPath = string.Join('/', segments.Take(segments.Length - 1));
 
             VirtualFolder root = FileSystemStorage.LoadRoot();
-            
-            VirtualFolder? parentFolder;
-            
-            if (parentPath.Equals("root", StringComparison.OrdinalIgnoreCase))
-            {
-                parentFolder = (VirtualFolder?)root;
-            }
-            else
-            {
-                parentFolder = FileSystemStorage.ResolveFolderByPath(root, parentPath);
-            }
+            VirtualFolder? parentFolder = FileSystemStorage.EnsureFolderPath(root, parentPath);
 
             if (parentFolder == null)
             {
                 Console.WriteLine($"Parent folder '{parentPath}' does not exist.");
                 return;
             }
+
+            string fullPath = PathUtils.BuildFullPath(parentFolder, newItemName);
 
             if (isFile)
             {
@@ -45,13 +39,10 @@ namespace VirtualFileSystem.Commands
                     Console.WriteLine($"A file named '{newItemName}' already exists at path: {parentPath}");
                     return;
                 }
-                if (parentFolder.Folders.Any(f => f.Name.Equals(newItemName, StringComparison.OrdinalIgnoreCase)))
-                {
-                    Console.WriteLine($"A folder named '{newItemName}' already exists at path: {parentPath}");
-                    return;
-                }
-                parentFolder.Files.Add(new VirtualFile { Name = newItemName });
-                Console.WriteLine($"File '{newItemName}' added at path: {path}");
+
+                parentFolder.Files.Add(VirtualSystemFactory.CreateFile(newItemName, fullPath));
+
+                Console.WriteLine($"File '{newItemName}' added at path: {fullPath}");
             }
             else
             {
@@ -60,13 +51,10 @@ namespace VirtualFileSystem.Commands
                     Console.WriteLine($"A folder named '{newItemName}' already exists at path: {parentPath}");
                     return;
                 }
-                if (parentFolder.Files.Any(f => f.Name.Equals(newItemName, StringComparison.OrdinalIgnoreCase)))
-                {
-                    Console.WriteLine($"A file named '{newItemName}' already exists at path: {parentPath}");
-                    return;
-                }
-                parentFolder.Folders.Add(new VirtualFolder { Name = newItemName });
-                Console.WriteLine($"Folder '{newItemName}' added at path: {path}");
+
+                parentFolder.Folders.Add(VirtualSystemFactory.CreateFolder(newItemName, fullPath));
+
+                Console.WriteLine($"Folder '{newItemName}' added at path: {fullPath}");
             }
 
             FileSystemStorage.Save(root);
