@@ -1,6 +1,6 @@
 ﻿namespace VirtualFileSystem.Models
 {
-    internal class VirtualFolder
+    public class VirtualFolder
     {
         public string Name { get; set; }
         public string FullPath { get; set; }

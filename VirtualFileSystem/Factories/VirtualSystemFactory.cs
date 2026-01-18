@@ -2,7 +2,7 @@
 
 namespace VirtualFileSystem.Factories
 {
-    internal static class VirtualSystemFactory
+    public static class VirtualSystemFactory
     {
         public static VirtualFolder CreateFolder(string name, string fullPath)
         {
