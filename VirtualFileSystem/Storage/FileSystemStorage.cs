@@ -4,7 +4,7 @@ using VirtualFileSystem.Models;
 
 namespace VirtualFileSystem.Storage
 {
-    internal static class FileSystemStorage
+    public static class FileSystemStorage
     {
         private const string FileName = "filesystem.json";
 

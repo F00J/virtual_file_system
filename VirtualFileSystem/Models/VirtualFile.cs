@@ -1,6 +1,6 @@
 ﻿namespace VirtualFileSystem.Models
 {
-    internal class VirtualFile
+    public class VirtualFile
     {
         public string Name { get; set; }
         public string FullPath { get; set; }
