@@ -1,5 +1,3 @@
-# virutal_file_system
-
 # Virtual Filesystem CLI - Available Commands
 
 | Command   | Description                                  | Usage                                      |
