@@ -13,7 +13,7 @@ namespace VirtualFileSystem.Storage
             IncludeFields = true
         };
 
-        public static VirtualFolder Load()
+        public static VirtualFolder LoadRoot()
         {
             try
             {
@@ -33,6 +33,46 @@ namespace VirtualFileSystem.Storage
             }
         }
 
+        public static VirtualFolder? ResolveFolderByPath(VirtualFolder? root, string path)
+        {
+            string[] parts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+
+            VirtualFolder? current = root;
+
+            for (int i = 1; i < parts.Length; i++)
+            {
+                current = current?.Folders
+                    .FirstOrDefault(f => f.Name.Equals(parts[i], StringComparison.OrdinalIgnoreCase));
+
+                if (current == null)
+                {
+                    return null;
+                }
+            }
+
+            return current;
+        }
+
+        public static VirtualFolder? LoadFolder(string path)
+        {
+            string[] segments = path.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries);
+            VirtualFolder currentFolder = LoadRoot();
+
+            foreach (string segment in segments)
+            {
+                VirtualFolder? nextFolder = currentFolder.Folders.FirstOrDefault(f => f.Name.Equals(segment, StringComparison.OrdinalIgnoreCase));
+                if (nextFolder != null)
+                {
+                    currentFolder = nextFolder;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+
+            return currentFolder;
+        }
 
         public static void Save(VirtualFolder root)
         {
@@ -45,6 +85,49 @@ namespace VirtualFileSystem.Storage
             catch (Exception exception)
             {
                 Console.WriteLine($"Error saving file system: {exception.Message}");
+            }
+        }
+
+        public static bool Exists(string path)
+        {
+            string[] segments = path.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries);
+
+            VirtualFolder currentFolder = LoadRoot();
+
+            foreach (string segment in segments)
+            {
+                VirtualFolder? nextFolder = currentFolder.Folders.FirstOrDefault(f => f.Name.Equals(segment, StringComparison.OrdinalIgnoreCase));
+
+                if (nextFolder != null)
+                {
+                    currentFolder = nextFolder;
+                }
+                else
+                {
+                    VirtualFile? file = currentFolder.Files.FirstOrDefault(f => f.Name.Equals(segment, StringComparison.OrdinalIgnoreCase));
+                    if (file != null && segment == segments.Last())
+                    {
+                        return true;
+                    }
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public static void ClearAll()
+        {
+            try
+            {
+                if (File.Exists(FileName))
+                {
+                    File.Delete(FileName);
+                }
+            }
+            catch (Exception exception)
+            {
+                Console.WriteLine($"Error clearing file system: {exception.Message}");
             }
         }
     }

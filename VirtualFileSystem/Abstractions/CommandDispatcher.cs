@@ -1,5 +1,4 @@
-﻿using System.Data;
-using VirtualFileSystem.Commands;
+﻿using VirtualFileSystem.Commands;
 using VirtualFileSystem.Enums;
 using VirtualFileSystem.Factories;
 
@@ -24,26 +23,18 @@ namespace VirtualFileSystem.Abstractions
             }
         }
 
-        public void Dispatch(string input)
+        public void Dispatch(string[] input)
         {
             try
             {
-                string[] parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                if (parts.Length == 0)
-                {
-                    Console.WriteLine("No command entered. Type 'help' for a list of commands.");
-                    return;
-                }
-
-                string commandName = parts[0].ToLower();
-                string[] args = [.. parts.Skip(1)];
+                string commandName = input[0].ToLower();
+                string[] args = [.. input.Skip(1)];
 
                 Command? commandEnum = GetCommandFromString(commandName);
                 if (commandEnum.HasValue && _commands.TryGetValue(commandEnum.Value, out BaseCommand? commandHandler))
                 {
                     if (!commandHandler.Validate(args))
                     {
-                        Console.WriteLine($"Invalid arguments for command: {commandName}");
                         return;
                     }
 
@@ -65,11 +56,13 @@ namespace VirtualFileSystem.Abstractions
             return commandName.ToLower() switch
             {
                 "add" => Command.Add,
+                "delete" => Command.Delete,
                 "view" => Command.View,
                 "move" => Command.Move,
                 "list" => Command.List,
                 "info" => Command.Info,
                 "help" => Command.Help,
+                "clearall" => Command.ClearAll,
                 _ => null
             };
         }
